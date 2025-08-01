@@ -1,6 +1,7 @@
 package zi.zircky.gtnhlauncher.service.download;
 
 import com.google.gson.*;
+import zi.zircky.gtnhlauncher.utils.MinecraftUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -35,7 +36,7 @@ public class MojangInstaller {
     JsonObject client = downloads.get("client").getAsJsonObject();
     String clientUrl = client.get("url").getAsString();
 
-    File versionDir = new File(mcDir, "versions/" + versionId);
+    File versionDir = new File(MinecraftUtils.gameRoot(), "versions/" + versionId);
     versionDir.mkdirs();
     File jarFile = new File(versionDir, versionId + ".jar");
     downloadFile(clientUrl, jarFile, callback);

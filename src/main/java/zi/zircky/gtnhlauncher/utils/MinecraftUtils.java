@@ -1,8 +1,12 @@
 package zi.zircky.gtnhlauncher.utils;
 
 import java.io.File;
+import java.nio.file.Paths;
 
+@SuppressWarnings({"unused", "SameParameterValue"})
 public class MinecraftUtils {
+
+
   private static final String fileName = ".gtnh-launcher";
   public static File getMinecraftDir() {
     String os = System.getProperty("os.name").toLowerCase();
@@ -32,5 +36,31 @@ public class MinecraftUtils {
       }
     }
     return null;
+  }
+
+  public static String gameRoot() {
+    return new File(getMinecraftDir(), ".minecraft").getAbsolutePath();
+  }
+
+  public String binRoot() {
+    return Paths.get(gameRoot() + "/bin").toString();
+  }
+
+
+
+  public static String getNativePath() {
+    return getMinecraftDir().getAbsolutePath() + "natives";
+  }
+
+  public String getLocalLibraryPath() {
+    return getMinecraftDir() + "libraries";
+  }
+
+  public String modsRoot() {
+    return gameRoot() + "mods";
+  }
+
+  public String modsCacheLocation() {
+    return gameRoot() + "cache";
   }
 }
