@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import lombok.Getter;
 import zi.zircky.gtnhlauncher.utils.MinecraftUtils;
 
 import java.io.*;
@@ -31,6 +32,7 @@ public class MinecraftLauncher {
   }
 
   public static class Library {
+    @Getter
     String name;
     String url;
     String sha1;
@@ -46,7 +48,7 @@ public class MinecraftLauncher {
     }
 
     public boolean isNative() {
-      return name.contains(":natives");
+      return name.contains(":natives-");
     }
 
     public File getPath() {
@@ -55,12 +57,11 @@ public class MinecraftLauncher {
 
       String path = String.join("/", parts[0].replace(".", "/"), parts[1], parts[2]);
       String fileName = parts[1] + "-" + parts[2] + ".jar";
-      return new File(LIBRARIES_DIR, path + "/" + fileName);
+      File fullPath = new File(LIBRARIES_DIR, path + "/" + fileName);
+      System.out.println("Full path native: " + fullPath);
+      return fullPath;
     }
 
-    public String getName() {
-      return name;
-    }
   }
 
   public static ProcessBuilder launch(File javaPath, int ramGb, String username, String uuid, String accessToken, boolean useJava17Plus) throws IOException {
@@ -87,7 +88,14 @@ public class MinecraftLauncher {
     }
 
     String mainClass = resolveMainClass(allJsons);
-    List<Library> libraries = collectLiberies(allJsons);
+    List<Library> libraries = collectLiberies(allJsons, useJava17Plus);
+    AssetsInstaller.installAssets(new File(MinecraftUtils.getMinecraftDir(), "assets"));
+
+    List<String> classpath = downloadAndBuildClasspath(libraries, useJava17Plus);
+
+    File nativesDir = new File(MinecraftUtils.getNativePath());
+    System.out.println("NativesDir: " + nativesDir);
+    NativesExtractor.extractNatives(nativesDir, libraries);
 
     if (useJava17Plus) {
       String lwjgl3ifyVersion = getlwjgl3ifyVersion(useJava17Plus);
@@ -102,7 +110,6 @@ public class MinecraftLauncher {
       }
     }
 
-    List<String> classpath = downloadAndBuildClasspath(libraries, useJava17Plus);
 
     String minecraftVersion = components.stream()
         .filter(c -> c.getUid().equals("net.minecraft") || c.getCachedName().equals("Minecraft with LWJGL3"))
@@ -130,11 +137,8 @@ public class MinecraftLauncher {
 
 
     MojangInstaller.installVersion(minecraftVersion, mcDir, (p, msg) -> System.out.println(msg + " " + (int) (p * 100) + "%"));
-    ForgeDownloader.ensureForgeAndLwjgl(LIBRARIES_DIR, minecraftVersion, forgeVersion, lwjglName, lwjglVersion);
+    ForgeDownloader.ensureForgePresent(LIBRARIES_DIR, minecraftVersion, forgeVersion);
 
-    File nativesDir = new File(MinecraftUtils.getNativePath());
-    System.out.println(nativesDir);
-    NativesExtractor.extractNatives(nativesDir, libraries);
 
     jvmArgs.add("-Djava.library.path=" + nativesDir.getAbsolutePath());
 
@@ -155,15 +159,24 @@ public class MinecraftLauncher {
     } else {
 
       List<String> legacyArgs = new ArrayList<>();
-      legacyArgs.add("--gameDir"); legacyArgs.add(MinecraftUtils.gameRoot());
-      legacyArgs.add("--username"); legacyArgs.add(username);
-      legacyArgs.add("--uuid"); legacyArgs.add(uuid);
-      legacyArgs.add("--accessToken"); legacyArgs.add(accessToken);
-      legacyArgs.add("--version"); legacyArgs.add(minecraftVersion);
-      legacyArgs.add("--assetsDir"); legacyArgs.add(new File(MinecraftUtils.getMinecraftDir(), "assets").getAbsolutePath());
-      legacyArgs.add("--assetIndex"); legacyArgs.add(minecraftVersion);
-      legacyArgs.add("--userProperties"); legacyArgs.add("{}");
-      legacyArgs.add("--userType"); legacyArgs.add("legacy");
+      legacyArgs.add("--gameDir");
+      legacyArgs.add(MinecraftUtils.gameRoot());
+      legacyArgs.add("--username");
+      legacyArgs.add(username);
+      legacyArgs.add("--uuid");
+      legacyArgs.add(uuid);
+      legacyArgs.add("--accessToken");
+      legacyArgs.add(accessToken);
+      legacyArgs.add("--version");
+      legacyArgs.add(minecraftVersion);
+      legacyArgs.add("--assetsDir");
+      legacyArgs.add(new File(MinecraftUtils.getMinecraftDir(), "assets").getAbsolutePath());
+      legacyArgs.add("--assetIndex");
+      legacyArgs.add(minecraftVersion);
+      legacyArgs.add("--userProperties");
+      legacyArgs.add("{}");
+      legacyArgs.add("--userType");
+      legacyArgs.add("legacy");
 
       mcArgs = String.join(" ", legacyArgs);
     }
@@ -223,26 +236,89 @@ public class MinecraftLauncher {
         .orElse("");
   }
 
-  private static List<Library> collectLiberies(List<JsonObject> jsonObjects) {
+  private static List<Library> collectLiberies(List<JsonObject> jsonObjects, boolean useJava17Plus) {
     List<Library> result = new ArrayList<>();
-    for (JsonObject jsonObject : jsonObjects) {
-      if (jsonObject.has(LIBRARIES)) {
-        for (JsonElement element : jsonObject.getAsJsonArray(LIBRARIES)) {
-          JsonObject libObj = element.getAsJsonObject();
-          String name = libObj.get("name").getAsString();
+    String librariesDir = MinecraftUtils.getLocalLibraryPath();
 
-          if (libObj.has("downloads")) {
-            JsonObject downloads = libObj.getAsJsonObject("downloads");
-            if (downloads.has("artifact")) {
-              JsonObject art = downloads.getAsJsonObject("artifact");
-              String url = art.get("url").getAsString();
-              String sha1 = art.get("sha1").getAsString();
-              long size = art.get("size").getAsLong();
-              result.add(new Library(name, url, sha1, size));
+    if (useJava17Plus) {
+      for (JsonObject jsonObject : jsonObjects) {
+        if (jsonObject.has(LIBRARIES)) {
+          for (JsonElement element : jsonObject.getAsJsonArray(LIBRARIES)) {
+            JsonObject libObj = element.getAsJsonObject();
+            String name = libObj.get("name").getAsString();
+
+            if (libObj.has("downloads")) {
+              JsonObject downloads = libObj.getAsJsonObject("downloads");
+              if (downloads.has("artifact")) {
+                JsonObject art = downloads.getAsJsonObject("artifact");
+                String url = art.get("url").getAsString();
+                String sha1 = art.get("sha1").getAsString();
+                long size = art.get("size").getAsLong();
+                result.add(new Library(name, url, sha1, size));
+              }
+            } else if (libObj.has("MMC-hint") && libObj.get("MMC-hint").getAsString().equals("local")) {
+              result.add(new Library(name, null, null, 0));
             }
-          } else if (libObj.has("MMC-hint") && libObj.get("MMC-hint").getAsString().equals("local")) {
-            result.add(new Library(name, null, null, 0));
           }
+        }
+      }
+    } else {
+      String[] EXTRA_LIBRARIES = {
+          // === LaunchWrapper & utils ===
+          "net.minecraft:launchwrapper:1.12",
+          "org.ow2.asm:asm-all:5.0.3",
+          "com.typesafe.akka:akka-actor_2.11:2.3.3",
+          "com.typesafe:config:1.2.1",
+          "org.scala-lang:scala-library:2.11.1",
+          "org.scala-lang:scala-compiler:2.11.1",
+
+          // === LWJGL 2.x (основные) ===
+          "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209",
+          "org.lwjgl.lwjgl:lwjgl_util:2.9.4-nightly-20150209",
+          "org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209:natives-windows",
+
+          // === JInput (нужен для клавиатуры/мыши) ===
+          "net.java.jinput:jinput:2.0.5",
+          "net.java.jinput:jinput-platform:2.0.5:natives-windows",
+
+          // === Apache Commons ===
+          "org.apache.commons:commons-lang3:3.3.2",
+          "commons-io:commons-io:2.4",
+          "commons-codec:commons-codec:1.9",
+
+          // === Guava / Gson ===
+          "com.google.guava:guava:17.0",
+          "com.google.code.gson:gson:2.2.4",
+
+          // === Logback / Logging ===
+          "org.apache.logging.log4j:log4j-api:2.0-beta9",
+          "org.apache.logging.log4j:log4j-core:2.0-beta9",
+
+          // === Other dependencies ===
+          "net.sf.jopt-simple:jopt-simple:4.5",
+          "oshi-project:oshi-core:1.1",
+          "net.java.dev.jna:jna:3.4.0",
+          "net.java.dev.jna:platform:3.4.0"
+      };
+
+      for (String lib : EXTRA_LIBRARIES) {
+        String[] parts = lib.split(":");
+        String groupId = parts[0];
+        String artifactId = parts[1];
+        String version = parts[2];
+        String classifier = (parts.length > 3 ? parts[3] : null);
+
+        try {
+          LibraryDownloader.downloadLibrary(groupId, artifactId, version, new File(librariesDir), classifier);
+
+          File jarPath = new File(librariesDir,
+              groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" +
+                  artifactId + "-" + version + (classifier != null ? "-" + classifier : "") + ".jar");
+
+          result.add(new Library(lib, null, null, jarPath.length()));
+          System.out.println("📦 Added extra lib: " + lib);
+        } catch (IOException e) {
+          System.err.println("❌ Не удалось скачать extra библиотеку: " + lib);
         }
       }
     }
@@ -259,6 +335,10 @@ public class MinecraftLauncher {
         logger.info("⬇ Downloading: " + file.getName());
         try (InputStream in = new URL(lib.url).openStream()) {
           Files.copy(in, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+          logger.info("✓ Loaded: " + file.getPath());
+          break;
+        } catch (IOException e) {
+          System.err.println("Loading error: " + lib.url);
         }
       }
       result.add(file.getAbsolutePath());
@@ -325,7 +405,9 @@ public class MinecraftLauncher {
 //      System.err.println("⚠ Forge universal jar not found: " + forgeUniversal.getAbsolutePath());
 //    }
 
-    addAllJarsRecursive(LIBRARIES_DIR, result);
+    if (!useJava17Plus) {
+      addAllJarsRecursive(LIBRARIES_DIR, result);
+    }
 
     return result;
   }
@@ -339,6 +421,11 @@ public class MinecraftLauncher {
           String path = file.getAbsolutePath();
 
           if (path.contains("guava-15.0.jar")) continue;
+          if (path.contains("lwjgl-2.9.1.jar")) continue;
+          if (path.contains("lwjgl_util-2.9.1.jar")) continue;
+          if (path.contains("lwjgl-platform-2.9.1-natives-windows.jar")) continue;
+          if (path.contains("lwjgl-platform-2.9.1-natives-linux.jar")) continue;
+          if (path.contains("lwjgl-platform-2.9.1-natives-osx.jar")) continue;
 
           if (!classpath.contains(path)) {
             classpath.add(path);

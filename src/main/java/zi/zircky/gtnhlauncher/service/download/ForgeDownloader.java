@@ -49,6 +49,8 @@ public class ForgeDownloader {
 
     LibraryDownloader.downloadLibrary("com.google.guava", "guava", "21.0", librariesDir, null);
 
+    //LibraryDownloader.downloadLibrary("org.spongepowered", "mixin", "0.8.5", librariesDir, null);
+
     // LWJGL Core
     LibraryDownloader.downloadLibrary(lwjglName + "/lwjgl", "lwjgl", lwjglVersion, librariesDir, null);
 

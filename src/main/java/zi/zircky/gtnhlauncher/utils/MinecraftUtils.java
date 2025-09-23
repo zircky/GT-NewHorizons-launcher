@@ -49,11 +49,11 @@ public class MinecraftUtils {
 
 
   public static String getNativePath() {
-    return getMinecraftDir().getAbsolutePath() + "natives";
+    return getMinecraftDir().getAbsolutePath() + "/natives";
   }
 
-  public String getLocalLibraryPath() {
-    return getMinecraftDir() + "libraries";
+  public static String getLocalLibraryPath() {
+    return getMinecraftDir() + "/libraries";
   }
 
   public String modsRoot() {
