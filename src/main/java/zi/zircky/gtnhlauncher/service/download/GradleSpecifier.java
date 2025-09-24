@@ -1,5 +1,8 @@
 package zi.zircky.gtnhlauncher.service.download;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,11 +13,18 @@ public class GradleSpecifier {
   );
 
   private String invalidValue;
+  @Getter
   private String groupID;
+  @Getter
   private String artifactID;
+  @Getter
   private String version;
+  @Getter
+  @Setter
   private String classifier;
+  @Getter
   private String extension = "jar";
+  @Getter
   private boolean valid;
 
   public GradleSpecifier() {
@@ -78,34 +88,6 @@ public class GradleSpecifier {
     if (!valid) return "";
     String base = repoBase.endsWith("/") ? repoBase : repoBase + "/";
     return base + toPath(null);
-  }
-
-  public boolean isValid() {
-    return valid;
-  }
-
-  public String getGroupID() {
-    return groupID;
-  }
-
-  public String getArtifactID() {
-    return artifactID;
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
-  public void setClassifier(String classifier) {
-    this.classifier = classifier;
-  }
-
-  public String getClassifier() {
-    return classifier;
-  }
-
-  public String getExtension() {
-    return extension;
   }
 
   public String getArtifactPrefix() {

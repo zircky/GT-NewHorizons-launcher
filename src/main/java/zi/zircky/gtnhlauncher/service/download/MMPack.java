@@ -21,6 +21,7 @@ public class MMPack {
         JsonObject mmcPack = gson.fromJson(reader, JsonObject.class);
         JsonArray components = mmcPack.getAsJsonArray("components");
 
+
         if (components != null) {
           for (int i = 0; i < components.size(); i++) {
             JsonObject component = components.get(i).getAsJsonObject();

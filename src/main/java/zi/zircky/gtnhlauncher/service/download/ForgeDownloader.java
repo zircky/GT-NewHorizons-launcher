@@ -59,7 +59,5 @@ public class ForgeDownloader {
 
     // LWJGL Natives (для Windows)
     LibraryDownloader.downloadLibrary(lwjglName + "/lwjgl", "lwjgl-platform", lwjglVersion, librariesDir, "natives-windows");
-
-
   }
 }

@@ -55,8 +55,14 @@ public class MinecraftLauncher {
       String[] parts = name.split(":");
       if (parts.length < 3) return null;
 
-      String path = String.join("/", parts[0].replace(".", "/"), parts[1], parts[2]);
-      String fileName = parts[1] + "-" + parts[2] + ".jar";
+      String group = parts[0].replace(".", "/");
+      String artifact = parts[1];
+      String version = parts[2];
+      String classifier = parts.length >= 4 ? parts[3] : null;
+
+      String path = group + "/" + artifact + "/" + version;
+      String fileName = artifact + "-" + version + (classifier != null ? "-" + classifier : "") + ".jar";
+
       File fullPath = new File(LIBRARIES_DIR, path + "/" + fileName);
       System.out.println("Full path native: " + fullPath);
       return fullPath;
@@ -94,7 +100,7 @@ public class MinecraftLauncher {
     List<String> classpath = downloadAndBuildClasspath(libraries, useJava17Plus);
 
     File nativesDir = new File(MinecraftUtils.getNativePath());
-    System.out.println("NativesDir: " + nativesDir);
+    logger.info("NativesDir: " + nativesDir);
     NativesExtractor.extractNatives(nativesDir, libraries);
 
     if (useJava17Plus) {
@@ -141,6 +147,7 @@ public class MinecraftLauncher {
 
 
     jvmArgs.add("-Djava.library.path=" + nativesDir.getAbsolutePath());
+    jvmArgs.add("-Djna.debug_load=true");
 
     String mcArgs;
     if (useJava17Plus) {
@@ -172,7 +179,7 @@ public class MinecraftLauncher {
       legacyArgs.add("--assetsDir");
       legacyArgs.add(new File(MinecraftUtils.getMinecraftDir(), "assets").getAbsolutePath());
       legacyArgs.add("--assetIndex");
-      legacyArgs.add(minecraftVersion);
+      legacyArgs.add("legacy");
       legacyArgs.add("--userProperties");
       legacyArgs.add("{}");
       legacyArgs.add("--userType");
@@ -271,6 +278,8 @@ public class MinecraftLauncher {
           "com.typesafe:config:1.2.1",
           "org.scala-lang:scala-library:2.11.1",
           "org.scala-lang:scala-compiler:2.11.1",
+          "org.scala-lang:scala-reflect:2.11.1",
+          "org.scala-lang.modules:scala-parser-combinators_2.11:1.0.1",
 
           // === LWJGL 2.x (основные) ===
           "org.lwjgl.lwjgl:lwjgl:2.9.4-nightly-20150209",

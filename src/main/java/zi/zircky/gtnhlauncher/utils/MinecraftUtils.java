@@ -3,9 +3,7 @@ package zi.zircky.gtnhlauncher.utils;
 import java.io.File;
 import java.nio.file.Paths;
 
-@SuppressWarnings({"unused", "SameParameterValue"})
 public class MinecraftUtils {
-
 
   private static final String fileName = ".gtnh-launcher";
   public static File getMinecraftDir() {
@@ -47,7 +45,6 @@ public class MinecraftUtils {
   }
 
 
-
   public static String getNativePath() {
     return getMinecraftDir().getAbsolutePath() + "/natives";
   }
@@ -63,4 +60,5 @@ public class MinecraftUtils {
   public String modsCacheLocation() {
     return gameRoot() + "cache";
   }
+
 }

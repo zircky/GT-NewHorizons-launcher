@@ -25,6 +25,7 @@ public class MojangInstaller {
         break;
       }
     }
+
     if (versionMetaUrl == null) throw new IOException("Версия не найдена в манифесте: " + versionId);
 
     // 2. Скачать версию

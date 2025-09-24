@@ -61,6 +61,7 @@ public class NativesExtractor {
         continue;
       }
 
+
       try (JarFile jar = new JarFile(jarFile)) {
         Enumeration<JarEntry> entries = jar.entries();
         while (entries.hasMoreElements()) {

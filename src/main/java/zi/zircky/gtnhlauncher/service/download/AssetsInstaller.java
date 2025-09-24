@@ -19,6 +19,7 @@ public class AssetsInstaller {
    *
    * @param assetsDir папка .gtnh-launcher/assets
    */
+
   public static void installAssets(File assetsDir) throws IOException {
     File indexesDir = new File(assetsDir, "indexes");
     File objectsDir = new File(assetsDir, "objects");
