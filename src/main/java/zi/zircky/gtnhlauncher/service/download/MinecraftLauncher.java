@@ -71,7 +71,6 @@ public class MinecraftLauncher {
   }
 
   public static ProcessBuilder launch(File javaPath, int ramGb, String username, String uuid, String accessToken, boolean useJava17Plus) throws IOException {
-
     List<MmcPackParser.Component> components = MmcPackParser.loadComponents(mmcPack);
     List<File> patchFiles = MmcPackParser.resolveComponentJsonFiles(PATCHES_DIR, components);
 
@@ -116,6 +115,7 @@ public class MinecraftLauncher {
       }
     }
 
+    List<String> classpath = downloadAndBuildClasspath(libraries, useJava17Plus);
 
     String minecraftVersion = components.stream()
         .filter(c -> c.getUid().equals("net.minecraft") || c.getCachedName().equals("Minecraft with LWJGL3"))
@@ -141,10 +141,8 @@ public class MinecraftLauncher {
         .map(MmcPackParser.Component::getUid)
         .orElse("");
 
-
     MojangInstaller.installVersion(minecraftVersion, mcDir, (p, msg) -> System.out.println(msg + " " + (int) (p * 100) + "%"));
     ForgeDownloader.ensureForgePresent(LIBRARIES_DIR, minecraftVersion, forgeVersion);
-
 
     jvmArgs.add("-Djava.library.path=" + nativesDir.getAbsolutePath());
     jvmArgs.add("-Djna.debug_load=true");
@@ -416,6 +414,7 @@ public class MinecraftLauncher {
 
     if (!useJava17Plus) {
       addAllJarsRecursive(LIBRARIES_DIR, result);
+
     }
 
     return result;

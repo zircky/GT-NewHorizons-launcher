@@ -302,7 +302,6 @@ public class LauncherController {
       boolean isJava17 = config.isVersionJava();
 
       ProcessBuilder builder = MinecraftLauncher.launch(javaFile, ram, auth.username, auth.uuid, auth.accessToken, isJava17);
-
       Process process = builder.start();
       System.out.println("Runned Minecraft PID: " + process.pid());
 
