@@ -8,6 +8,7 @@ import zi.zircky.gtnhlauncher.utils.OperatingSystem;
 import java.io.*;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -51,16 +52,17 @@ public class NativesExtractor {
       throw new IOException("It was not possible to create a folder for natives: " + nativesDir.getAbsolutePath());
     }
 
+    boolean is64bit = System.getProperty("os.arch").toLowerCase(Locale.ROOT).contains("64");
+
     for (MinecraftLauncher.Library lib : libraries) {
-      if (!lib.isNative()) continue;
+      if (!lib.isNativeForCurrentOS()) continue;
 
       File jarFile = lib.getPath();
-      System.out.println("Native: "+jarFile);
+      System.out.println("Native: " + jarFile);
       if (!jarFile.exists()) {
         System.err.println("[WARN] Not Naiden Natives Jar: " + jarFile);
         continue;
       }
-
 
       try (JarFile jar = new JarFile(jarFile)) {
         Enumeration<JarEntry> entries = jar.entries();
@@ -72,8 +74,12 @@ public class NativesExtractor {
           if (entry.isDirectory() || name.startsWith("META-INF/")) continue;
           if (!(name.endsWith(".dll") || name.endsWith(".so") || name.endsWith(".dylib"))) continue;
 
-          File outFile = new File(nativesDir, new File(name).getName());
+          // Фильтрация по битности (например, OpenAL32.dll / OpenAL64.dll)
+          String lower = name.toLowerCase(Locale.ROOT);
+          if (is64bit && lower.contains("32")) continue;
+          if (!is64bit && lower.contains("64")) continue;
 
+          File outFile = new File(nativesDir, new File(name).getName());
           if (outFile.exists()) continue;
 
           try (InputStream in = jar.getInputStream(entry);

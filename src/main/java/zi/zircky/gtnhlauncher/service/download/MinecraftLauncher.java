@@ -12,10 +12,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
 
 
@@ -66,6 +63,29 @@ public class MinecraftLauncher {
       File fullPath = new File(LIBRARIES_DIR, path + "/" + fileName);
       System.out.println("Full path native: " + fullPath);
       return fullPath;
+    }
+
+    public boolean isNativeForCurrentOS() {
+      if (!isNative()) return false;
+
+      String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+      String arch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
+      boolean is64bit = arch.contains("64");
+
+      // Классификатор (например: natives-windows, natives-linux, natives-osx, natives-windows-64)
+      String[] parts = name.split(":");
+      String classifier = parts.length >= 4 ? parts[3].toLowerCase(Locale.ROOT) : "";
+
+      // Проверка ОС
+      if (osName.contains("win") && !classifier.contains("windows")) return false;
+      if ((osName.contains("mac") || osName.contains("osx")) && !classifier.contains("osx")) return false;
+      if (osName.contains("linux") && !classifier.contains("linux")) return false;
+
+      // Проверка битности (если в classifier явно указано 32/64)
+      if (is64bit && classifier.contains("32")) return false;
+      if (!is64bit && classifier.contains("64")) return false;
+
+      return true;
     }
 
   }
@@ -128,19 +148,6 @@ public class MinecraftLauncher {
         .findFirst()
         .map(useJava17Plus ? MmcPackParser.Component::getCachedVersion : MmcPackParser.Component::getVersion)
         .orElse("10.13.4.1614");
-
-    String lwjglVersion = components.stream()
-        .filter(c -> c.getUid().equals("org.lwjgl") || c.getCachedName().equals("LWJGL 3"))
-        .findFirst()
-        .map(useJava17Plus ? MmcPackParser.Component::getCachedVersion : MmcPackParser.Component::getVersion)
-        .orElse("");
-
-    String lwjglName = components.stream()
-        .filter(c -> c.getUid().equals("org.lwjgl") || c.getCachedName().equals("LWJGL 3"))
-        .findFirst()
-        .map(MmcPackParser.Component::getUid)
-        .orElse("");
-
 
     MojangInstaller.installVersion(minecraftVersion, mcDir, (p, msg) -> System.out.println(msg + " " + (int) (p * 100) + "%"));
     ForgeDownloader.ensureForgePresent(LIBRARIES_DIR, minecraftVersion, forgeVersion);
