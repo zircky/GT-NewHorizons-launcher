@@ -64,7 +64,7 @@ public class XboxAuthenticator {
             """.formatted(userHash, xstsToken);
 
     JsonNode response = HttpUtils.postJson("https://api.minecraftservices.com/authentication/login_with_xbox", json);
-    return response.get("access_token").asText();
+    return requireText(response, "access_token", "Minecraft token");
   }
 
   public static MinecraftSession getMinecraftProfile(String mcAccessToken, String refreshToken) throws IOException, InterruptedException {
@@ -85,7 +85,13 @@ public class XboxAuthenticator {
       throw new IOException("Missing '" + response + "' in " + context + " response");
     }
 
-    return value.asText();
+    String text = value.asText();
+
+    if (text == null || text.isBlank()) {
+      throw new IOException("Missing '" + response + "' in " + context + " response");
+    }
+
+    return text;
   }
 
 }
